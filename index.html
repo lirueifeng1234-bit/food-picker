@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>美食抽選終端機</title>
+<style>
+  :root{
+    --bg1:#E9F2FF; --bg2:#DCE7FF; --bg3:#EFE8FF;
+    --ink:#1B2A4A; --ink-soft:#5A6B8C;
+    --glass:rgba(255,255,255,0.55);
+    --glass-strong:rgba(255,255,255,0.72);
+    --stroke:rgba(255,255,255,0.85);
+    --azure:#3D9BFF; --violet:#8B7CF6; --cyan:#36D6FF;
+    --grad:linear-gradient(135deg,#5BA8FF 0%,#8B7CF6 100%);
+    --grad-soft:linear-gradient(135deg,rgba(91,168,255,.18),rgba(139,124,246,.18));
+    --shadow:0 10px 40px rgba(60,110,200,.18);
+    --r:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:"PingFang TC","Noto Sans TC","Hiragino Sans GB","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    min-height:100%; overflow-x:hidden; position:relative; padding:18px 16px 40px;
+  }
+  .orb{position:fixed;border-radius:50%;filter:blur(60px);opacity:.55;z-index:0;pointer-events:none;}
+  .orb.a{width:280px;height:280px;background:#7FC0FF;top:-80px;right:-60px;}
+  .orb.b{width:240px;height:240px;background:#C3B6FF;bottom:-60px;left:-70px;}
+  .orb.c{width:180px;height:180px;background:#9FE9FF;top:40%;left:50%;transform:translateX(-50%);opacity:.35;}
+  .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;}
+
+  .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;}
+  .brand h1{font-size:22px;font-weight:800;letter-spacing:.5px;line-height:1.15;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .brand p{font-size:12px;color:var(--ink-soft);margin-top:3px;letter-spacing:2px;}
+  .top-right{display:flex;align-items:center;gap:10px;}
+  .sound-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--stroke);background:var(--glass-strong);
+    cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:transform .12s,box-shadow .2s;}
+  .sound-btn:hover{box-shadow:0 4px 14px rgba(91,140,255,.3);}
+  .sound-btn:active{transform:scale(.9);}
+  .sound-btn.off{opacity:.5;}
+  .gauge{width:58px;height:58px;flex:0 0 auto;position:relative;}
+  .gauge svg{transform:rotate(-90deg);}
+  .gauge .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .gauge .val b{font-size:15px;font-weight:800;color:var(--azure);line-height:1;}
+  .gauge .val span{font-size:8px;color:var(--ink-soft);letter-spacing:1px;margin-top:2px;}
+
+  .card{background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--stroke);border-radius:var(--r);box-shadow:var(--shadow);}
+  .pad{padding:16px;}
+  .section-label{font-size:11px;letter-spacing:2px;color:var(--ink-soft);font-weight:700;margin-bottom:10px;text-transform:uppercase;}
+
+  .filter{margin-bottom:14px;}
+  .filter input{width:100%;border:none;outline:none;background:var(--glass-strong);
+    border:1px solid var(--stroke);border-radius:16px;padding:13px 15px;font-size:15px;color:var(--ink);
+    font-family:inherit;transition:box-shadow .2s,border-color .2s;}
+  .filter input::placeholder{color:#9aa8c4;}
+  .filter input:focus{border-color:var(--azure);box-shadow:0 0 0 4px rgba(61,155,255,.15),0 0 18px rgba(54,214,255,.25);}
+  .chipgroup{margin-top:11px;}
+  .chipgroup .glabel{font-size:10px;letter-spacing:1.5px;color:var(--ink-soft);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+  .chipgroup .glabel::before{content:"";width:14px;height:2px;border-radius:2px;background:var(--grad);}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font-size:12px;padding:6px 11px;border-radius:999px;cursor:pointer;
+    background:var(--grad-soft);border:1px solid rgba(139,124,246,.3);color:#5446a8;font-weight:600;
+    transition:transform .12s,box-shadow .2s;}
+  .chip:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(139,124,246,.25);}
+  .chip:active{transform:scale(.95);}
+  .chip.neg{background:rgba(255,232,240,.55);border-color:#ffc9da;color:#b4456b;}
+  .chip.bud{background:rgba(220,240,255,.6);border-color:#a9d6ff;color:#1f6fb8;}
+  .clear-need{font-size:11px;color:var(--ink-soft);cursor:pointer;text-decoration:underline;margin-top:9px;display:inline-block;}
+
+  .levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0;}
+  .lvl{cursor:pointer;border:1px solid var(--stroke);background:var(--glass);border-radius:18px;
+    padding:12px 4px 10px;text-align:center;transition:transform .14s,box-shadow .25s,border-color .25s,background .25s;position:relative;overflow:hidden;}
+  .lvl .e{font-size:24px;display:block;line-height:1;}
+  .lvl .n{font-size:12px;font-weight:700;margin-top:6px;color:var(--ink);}
+  .lvl:hover{transform:translateY(-3px);}
+  .lvl.active{border-color:transparent;background:var(--grad);box-shadow:0 8px 24px rgba(91,140,255,.4),0 0 0 1px rgba(255,255,255,.4) inset;}
+  .lvl.active .n{color:#fff;}
+  .lvl.active::after{content:"";position:absolute;inset:0;border-radius:18px;box-shadow:0 0 22px rgba(54,214,255,.6) inset;}
+
+  .stage{position:relative;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:22px 16px;text-align:center;overflow:hidden;margin-bottom:14px;}
+  .stage::before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(91,168,255,.04) 3px 4px);pointer-events:none;}
+  .placeholder{color:var(--ink-soft);}
+  .placeholder .big{font-size:54px;margin-bottom:12px;opacity:.85;}
+  .placeholder p{font-size:14px;line-height:1.6;}
+
+  .result{width:100%;display:none;flex-direction:column;align-items:center;}
+  .plate{width:170px;height:170px;border-radius:28px;display:flex;align-items:center;justify-content:center;
+    font-size:88px;position:relative;margin-bottom:14px;background:var(--grad);box-shadow:0 14px 40px rgba(91,140,255,.45);}
+  .plate::after{content:"";position:absolute;inset:6px;border-radius:22px;border:1.5px solid rgba(255,255,255,.55);}
+  .plate.spin{animation:pulse .9s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 14px 40px rgba(91,140,255,.45);}50%{box-shadow:0 14px 54px rgba(54,214,255,.7);}}
+  .fname{font-size:24px;font-weight:800;letter-spacing:.5px;}
+  .fmeta{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+  .stars{color:#FFB23E;font-size:14px;letter-spacing:1px;}
+  .rec{font-size:11px;color:var(--ink-soft);}
+  .price{font-size:13px;font-weight:700;color:var(--azure);background:rgba(61,155,255,.12);padding:3px 10px;border-radius:999px;}
+  .ftags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;}
+  .ftag{font-size:11px;color:#5446a8;background:var(--grad-soft);border:1px solid rgba(139,124,246,.25);padding:3px 9px;border-radius:999px;}
+  .remain{font-size:11px;color:var(--ink-soft);margin-top:12px;letter-spacing:1px;}
+
+  .warn{display:none;width:100%;background:rgba(255,247,230,.85);border:1px solid #FFD98A;color:#8a6516;
+    border-radius:16px;padding:13px 15px;font-size:13px;line-height:1.6;margin-bottom:6px;}
+  .warn b{color:#a05e00;}
+
+  .actions{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+  .btn{border:none;cursor:pointer;font-family:inherit;font-weight:800;font-size:16px;letter-spacing:1px;
+    padding:15px;border-radius:18px;transition:transform .12s,box-shadow .25s,opacity .2s;color:#fff;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-main{background:var(--grad);box-shadow:0 10px 28px rgba(91,140,255,.45);}
+  .btn-main:hover:not(:disabled){box-shadow:0 12px 34px rgba(54,214,255,.5);}
+  .btn-row{display:flex;gap:10px;}
+  .btn-row .btn{flex:1;}
+  .btn-ghost{background:var(--glass-strong);color:var(--azure);border:1px solid var(--stroke);box-shadow:none;}
+  .btn-ok{background:linear-gradient(135deg,#34D399,#10B981);box-shadow:0 10px 28px rgba(16,185,129,.4);}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .mini{min-height:80px;}
+  .mini .row{display:flex;flex-wrap:wrap;gap:6px;}
+  .pill{font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.6);border:1px solid var(--stroke);color:var(--ink-soft);}
+  .pill.rej{color:#b4456b;background:rgba(255,232,240,.7);border-color:#ffc9da;}
+  .empty{font-size:12px;color:#9aa8c4;}
+  .histlist{list-style:none;font-size:13px;}
+  .histlist li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(120,140,180,.25);}
+  .histlist li:last-child{border-bottom:none;}
+  .histlist .t{color:var(--ink-soft);font-size:11px;}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,30,60,.45);backdrop-filter:blur(6px);z-index:50;
+    display:none;align-items:center;justify-content:center;padding:24px;}
+  .egg{background:var(--glass-strong);backdrop-filter:blur(20px);border:1px solid var(--stroke);border-radius:26px;
+    padding:26px 22px;text-align:center;max-width:340px;box-shadow:var(--shadow);}
+  .egg .em{font-size:54px;} .egg h3{font-size:18px;margin:10px 0 6px;}
+  .egg p{font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:16px;}
+  .egg button{width:100%;}
+  .confetti{position:fixed;width:9px;height:14px;z-index:60;top:-20px;border-radius:2px;pointer-events:none;}
+
+  .foot{text-align:center;font-size:10.5px;color:#9aa8c4;margin-top:22px;line-height:1.7;}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+  @media(max-width:380px){.lvl .n{font-size:11px;}.plate{width:150px;height:150px;font-size:76px;}}
+</style>
+</head>
+<body>
+  <div class="orb a"></div><div class="orb b"></div><div class="orb c"></div>
+
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>美食抽選終端機</h1>
+        <p>FOOD SELECTOR · NEURAL PICK</p>
+      </div>
+      <div class="top-right">
+        <button class="sound-btn" id="soundBtn" title="音效開關">🔊</button>
+        <div class="gauge" title="今日幸運值">
+          <svg width="58" height="58" viewBox="0 0 58 58">
+            <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(120,150,200,.2)" stroke-width="6"/>
+            <circle id="gaugeArc" cx="29" cy="29" r="24" fill="none" stroke="url(#gg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="151"/>
+            <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#36D6FF"/><stop offset="1" stop-color="#8B7CF6"/>
+            </linearGradient></defs>
+          </svg>
+          <div class="val"><b id="luckyVal">0</b><span>幸運值</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- filter -->
+    <div class="filter">
+      <input id="needInput" type="text" placeholder="今日特殊需求(可留空)例:日式、不要海鮮、100-200元" />
+
+      <div class="chipgroup">
+        <div class="glabel">料理別</div>
+        <div class="chips">
+          <span class="chip" data-add="日式">日式</span>
+          <span class="chip" data-add="韓式">韓式</span>
+          <span class="chip" data-add="台式">台式</span>
+          <span class="chip" data-add="中式">中式</span>
+          <span class="chip" data-add="西式">西式</span>
+          <span class="chip" data-add="泰越">泰越</span>
+        </div>
+      </div>
+
+      <div class="chipgroup">
+        <div class="glabel">口味 / 飲食</div>
+        <div class="chips">
+          <span class="chip" data-add="想吃辣">想吃辣</span>
+          <span class="chip" data-add="想喝湯">想喝湯</span>
+          <span class="chip" data-add="想吃飯">想吃飯</span>
+          <span class="chip" data-add="想吃麵">想吃麵</span>
+          <span class="chip neg" data-add="不要辣">不要辣</span>
+          <span class="chip neg" data-add="不要海鮮">不要海鮮</span>
+          <span class="chip neg" data-add="不要炸">不要炸</span>
+          <span class="chip neg" data-add="不要牛">不要牛</span>
+          <span class="chip neg" data-add="吃素">吃素</span>
+        </div>
+      </div>
+
+      <div class="chipgroup">
+        <div class="glabel">預算區間</div>
+        <div class="chips">
+          <span class="chip bud" data-add="銅板價">銅板價 ≤$60</span>
+          <span class="chip bud" data-add="100元以內">$100以內</span>
+          <span class="chip bud" data-add="100-200元">$100–200</span>
+          <span class="chip bud" data-add="200-300元">$200–300</span>
+          <span class="chip bud" data-add="300元以上">$300以上</span>
+        </div>
+      </div>
+      <span class="clear-need" id="clearNeed">清除需求</span>
+    </div>
+
+    <!-- levels -->
+    <div class="levels" id="levels"></div>
+
+    <!-- stage -->
+    <div class="card stage" id="stage">
+      <div class="placeholder" id="placeholder">
+        <div class="big">🍱</div>
+        <p>選一個等級,設定今日需求,<br/>按下「開始抽選」讓終端機幫你決定。</p>
+      </div>
+      <div class="warn" id="warn"></div>
+      <div class="result" id="result">
+        <div class="plate" id="plate">🍜</div>
+        <div class="fname" id="fname">—</div>
+        <div class="fmeta">
+          <span class="stars" id="stars"></span>
+          <span class="rec" id="recTxt"></span>
+          <span class="price" id="price"></span>
+        </div>
+        <div class="ftags" id="ftags"></div>
+        <div class="remain" id="remain"></div>
+      </div>
+    </div>
+
+    <!-- actions -->
+    <div class="actions">
+      <button class="btn btn-main" id="drawBtn">🎰 開始抽選</button>
+      <div class="btn-row" id="postRow" style="display:none;">
+        <button class="btn btn-ghost" id="redrawBtn">🔄 重新抽選</button>
+        <button class="btn btn-ok" id="confirmBtn">✅ 就是這個了!</button>
+      </div>
+    </div>
+
+    <!-- lists -->
+    <div class="grid2">
+      <div class="card pad mini">
+        <div class="section-label">今日已拒絕</div>
+        <div class="row" id="rejList"><span class="empty">還沒拒絕任何食物</span></div>
+      </div>
+      <div class="card pad mini">
+        <div class="section-label">抽選歷史</div>
+        <ul class="histlist" id="histList"><li><span class="empty">尚無紀錄</span></li></ul>
+      </div>
+    </div>
+
+    <div class="foot">
+      圖片:每道食物以代表性 emoji + 漸層色塊呈現(無外部請求,離線可跑)。<br/>
+      音效:以 Web Audio 即時合成(無音檔),可用右上角 🔊 切換。
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="egg">
+      <div class="em">😏</div>
+      <h3 id="eggTitle">你今天有夠難搞</h3>
+      <p id="eggDesc">連抽 5 次還沒滿意?終端機決定動用隱藏菜色,閉眼睛吃就對了。</p>
+      <button class="btn btn-main" id="eggBtn">接受命運</button>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* ===== 食物資料庫:[名稱, emoji, 標籤, 估價NT$] =====
+   標籤含「料理別(日/韓/台/中/西/泰)」「主食材」「口味」「型態」 */
+const DB = {
+  big: [
+    ["薑母鴨","🦆",["台","鴨","湯"],320],["燒烤吃到飽","🍖",["台","牛","豬","雞","海鮮"],600],
+    ["麻辣火鍋","🌶️",["中","辣","牛","湯"],450],["沙朗牛排","🥩",["西","牛"],480],
+    ["鹽酥雞大份","🍗",["台","雞","炸","辣"],150],["美式漢堡套餐","🍔",["西","牛","炸"],300],
+    ["羊肉爐","🐑",["台","羊","湯"],380],["豬腳飯","🍖",["台","豬","飯"],130],
+    ["燒肉定食","🥓",["日","豬","牛","飯"],350],["韓式烤肉","🥩",["韓","豬","牛","辣"],550],
+    ["海鮮披薩","🍕",["西","海鮮"],350],["炸豬排丼","🍱",["日","豬","炸","飯"],220],
+    ["牛肉麵大碗","🍜",["台","牛","麵","湯"],200],["鐵板燒","🍳",["日","牛","海鮮"],400],
+    ["三杯雞飯","🍗",["台","雞","飯"],160],["麻油雞","🍲",["台","雞","湯","飯"],180],
+    ["起司焗烤飯","🧀",["西","飯"],200],["泰式打拋豬飯","🌶️",["泰","豬","辣","飯"],160],
+    ["炸雞桶","🍗",["西","雞","炸"],350],["咖哩豬排飯","🍛",["日","豬","炸","飯"],180],
+    ["大份炒飯","🍚",["中","飯"],120],["滷味大份","🍢",["台","豬","辣"],200],
+    ["燒臘三寶飯","🦆",["中","鴨","豬","飯"],150],["牛五花壽喜燒","🍲",["日","牛","湯"],420]
+  ],
+  mid: [
+    ["排骨便當","🍱",["台","豬","炸","飯"],90],["奶油培根義大利麵","🍝",["西","豬","麵"],220],
+    ["豚骨拉麵","🍜",["日","豬","麵","湯"],200],["壽司套餐","🍣",["日","海鮮","飯"],280],
+    ["親子丼","🍱",["日","雞","飯"],160],["起司牛肉漢堡","🍔",["西","牛"],150],
+    ["總匯三明治","🥪",["西","豬","雞"],120],["牛肉燴飯","🍛",["中","牛","飯"],140],
+    ["越南河粉","🍜",["泰","牛","麵","湯"],160],["韓式石鍋拌飯","🍲",["韓","牛","辣","飯"],180],
+    ["日式咖哩飯","🍛",["日","豬","飯"],150],["揚州炒飯","🍚",["中","豬","飯"],110],
+    ["滷肉飯套餐","🍚",["台","豬","飯"],100],["火雞肉飯","🍗",["台","雞","飯"],90],
+    ["鍋燒意麵","🍜",["台","海鮮","麵","湯"],120],["焗烤白醬麵","🧀",["西","麵"],200],
+    ["蛋包飯","🍳",["日","雞","飯"],140],["牛丼","🍱",["日","牛","飯"],130],
+    ["泰式綠咖哩飯","🍛",["泰","雞","辣","飯"],170],["墨西哥捲餅","🌯",["西","牛","辣"],160],
+    ["廣式炒麵","🍜",["中","豬","麵"],130],["麻婆豆腐飯","🌶️",["中","辣","飯","素"],120],
+    ["鮭魚茶泡飯","🍵",["日","海鮮","飯"],150],["雞腿便當","🍱",["台","雞","飯"],100]
+  ],
+  small: [
+    ["鮪魚飯糰","🍙",["日","海鮮","飯"],35],["小籠包","🥟",["中","豬"],120],
+    ["起司蛋餅","🫓",["台","素"],45],["蔥油餅加蛋","🫓",["台","素"],50],
+    ["韭菜水餃10顆","🥟",["中","豬"],70],["鍋貼","🥟",["中","豬"],60],
+    ["鮮肉包","🥟",["中","豬"],30],["港式蘿蔔糕","🍘",["中","素"],50],
+    ["麻醬涼麵","🍜",["台","麵","素"],60],["鹹豆漿","🥣",["台","素","湯"],40],
+    ["紅豆車輪餅","🥮",["台","甜","素"],25],["雞蛋糕","🧇",["台","甜","素"],40],
+    ["章魚燒","🐙",["日","海鮮"],60],["烤地瓜","🍠",["台","素"],40],
+    ["大腸包小腸","🌭",["台","豬"],60],["刈包","🥟",["台","豬"],55],
+    ["胡椒餅","🥟",["台","豬"],50],["潤餅","🌯",["台","素"],45],
+    ["韓式飯捲","🍙",["韓","素","飯"],70],["銅鑼燒","🥮",["日","甜","素"],45],
+    ["蚵仔煎","🦪",["台","海鮮"],70],["地瓜球","🟤",["台","甜","素","炸"],40],
+    ["滷味小份","🍢",["台","豬","辣"],70],["蔥抓餅","🫓",["台","素"],45]
+  ],
+  health: [
+    ["凱薩雞肉沙拉","🥗",["西","雞"],120],["舒肥雞胸餐","🍗",["西","雞","飯"],130],
+    ["水煮蛋3顆","🥚",["素"],30],["烤鮭魚餐","🐟",["西","海鮮","飯"],180],
+    ["地瓜雞胸便當","🍠",["台","雞","飯"],110],["希臘優格碗","🥣",["西","甜","素"],90],
+    ["蔬菜湯","🥬",["素","湯"],60],["燙青菜拼盤","🥦",["台","素"],50],
+    ["鹽味毛豆","🫛",["日","素"],40],["蕎麥涼麵","🍜",["日","麵","素"],90],
+    ["去皮滷雞腿","🍗",["台","雞"],70],["嫩豆腐沙拉","🥗",["日","素"],80],
+    ["鮪魚生菜沙拉","🥗",["西","海鮮"],110],["高蛋白奶昔","🥤",["西","飲","甜"],80],
+    ["全麥雞胸三明治","🥪",["西","雞"],90],["清蒸鱸魚","🐟",["中","海鮮"],200],
+    ["蒜炒花椰菜","🥦",["中","素"],60],["牛肉蔬菜捲","🌯",["西","牛"],130],
+    ["蝦仁炒時蔬","🦐",["中","海鮮"],150],["雞肉藜麥碗","🥗",["西","雞","飯"],140],
+    ["味噌豆腐湯","🍲",["日","素","湯"],50],["無糖豆漿配茶葉蛋","🥚",["台","素","飲"],35],
+    ["鯖魚定食","🐟",["日","海鮮","飯"],160],["水煮雞胸沙拉碗","🥗",["西","雞"],120]
+  ]
+};
+const LEVELS = [
+  {id:"big",e:"🍽️",n:"大"},{id:"mid",e:"🍱",n:"中"},{id:"small",e:"🍙",n:"小"},
+  {id:"health",e:"🥗",n:"健康"},{id:"random",e:"🎲",n:"隨機"}
+];
+const MEAT_TAGS=["牛","豬","雞","鴨","羊","海鮮"];
+/* 標籤 → 分類(同分類內 OR,跨分類 AND) */
+const CAT={日:"cuisine",韓:"cuisine",台:"cuisine",中:"cuisine",西:"cuisine",泰:"cuisine",
+  牛:"protein",豬:"protein",雞:"protein",鴨:"protein",羊:"protein",海鮮:"protein",
+  飯:"form",麵:"form",湯:"form",炸:"form",辣:"taste",甜:"taste",素:"diet",飲:"drink"};
+
+function poolOf(id){ return id==="random" ? [].concat(DB.big,DB.mid,DB.small,DB.health) : DB[id].slice(); }
+function item(a){ return {name:a[0],emoji:a[1],tags:a[2],price:a[3]}; }
+
+/* ===== 需求解析 ===== */
+const TAGWORDS={
+  "海鮮":"海鮮","魚":"海鮮","蝦":"海鮮","蟹":"海鮮","蛤":"海鮮","蚵":"海鮮",
+  "辣":"辣","牛":"牛","豬":"豬","雞":"雞","鴨":"鴨","羊":"羊",
+  "麵":"麵","飯":"飯","炸":"炸","湯":"湯","甜":"甜","點心":"甜","飲":"飲","飲料":"飲",
+  "素":"素","蔬菜":"素","蔬食":"素",
+  "日式":"日","日本":"日","韓式":"韓","韓國":"韓","台式":"台","台灣":"台",
+  "中式":"中","中餐":"中","西式":"西","美式":"西","義式":"西","義大利":"西",
+  "泰式":"泰","泰國":"泰","越南":"泰","泰越":"泰"
+};
+const NEG=["不要","不吃","不想吃","不想","別","沒有","拒絕","避免","不能吃","討厭","不愛","忌","無"];
+const POS=["想吃","想要","要","愛","喜歡","來點","來個","想來","來份","超想","好想","想喝"];
+
+function parseBudget(t){
+  let min=null,max=null;
+  const rg=t.match(/(\d{2,4})\s*[-~～到至]\s*(\d{2,4})/);
+  if(rg){ min=+rg[1];max=+rg[2]; if(min>max){const x=min;min=max;max=x;} }
+  else{
+    const lo=t.match(/(\d{2,4})\s*元?\s*(?:以上|起跳|起)/)||t.match(/超過\s*(\d{2,4})/);
+    if(lo) min=+lo[1];
+    const hi=t.match(/預算\s*(\d{2,4})/)||t.match(/(\d{2,4})\s*(?:元|塊|\$)?\s*(?:以[內内]|以下|內)/)||t.match(/(\d{2,4})\s*(?:元|塊|\$)/);
+    if(hi && !(lo&&hi[1]===lo[1])) max=+hi[1];
+  }
+  if(/銅板/.test(t) && max==null) max=60;
+  return {min,max};
+}
+function parseNeed(raw){
+  const t=(raw||"").trim();
+  const f={include:[],exclude:[],minPrice:null,maxPrice:null};
+  if(!t) return f;
+  const b=parseBudget(t); f.minPrice=b.min; f.maxPrice=b.max;
+
+  if(/吃素|素食|不要肉|不吃肉|沒有肉|不想吃肉|純素/.test(t))
+    MEAT_TAGS.forEach(m=>{ if(!f.exclude.includes(m)) f.exclude.push(m); });
+  if(/想吃肉|想要肉|來點肉|要吃肉|想來點肉|無肉不歡/.test(t))
+    if(!f.exclude.includes("素")) f.exclude.push("素");
+
+  for(const k of Object.keys(TAGWORDS)){
+    let idx=t.indexOf(k);
+    while(idx!==-1){
+      const tag=TAGWORDS[k];
+      const before=t.slice(Math.max(0,idx-3),idx);
+      const isNeg=NEG.some(w=>before.includes(w))||t.slice(Math.max(0,idx-1),idx)==="不";
+      const isPos=POS.some(w=>before.includes(w));
+      if(isNeg){ if(!f.exclude.includes(tag))f.exclude.push(tag); }
+      else if(isPos){ if(!f.include.includes(tag))f.include.push(tag); }
+      else if(["辣","素","甜","海鮮","日","韓","台","中","西","泰"].includes(tag)){
+        if(!f.include.includes(tag))f.include.push(tag);  /* 單獨出現的料理/口味詞視為想要 */
+      }
+      idx=t.indexOf(k,idx+1);
+    }
+  }
+  f.include=f.include.filter(x=>!f.exclude.includes(x));
+  return f;
+}
+function applyFilter(rawPool,f){
+  // 將 include 依分類分群
+  const groups={};
+  for(const tg of f.include){ const c=CAT[tg]||"other"; (groups[c]=groups[c]||[]).push(tg); }
+  return rawPool.filter(a=>{
+    const it=item(a);
+    if(f.maxPrice!=null && it.price>f.maxPrice) return false;
+    if(f.minPrice!=null && it.price<f.minPrice) return false;
+    if(f.exclude.some(t=>it.tags.includes(t))) return false;
+    for(const c in groups){ if(!groups[c].some(t=>it.tags.includes(t))) return false; }
+    return true;
+  });
+}
+function summarize(f){
+  const p=[];
+  if(f.include.length)p.push("想要:"+f.include.join("/"));
+  if(f.exclude.length)p.push("排除:"+f.exclude.join("/"));
+  if(f.minPrice!=null||f.maxPrice!=null){
+    let s="預算 ";
+    if(f.minPrice!=null&&f.maxPrice!=null)s+="$"+f.minPrice+"–$"+f.maxPrice;
+    else if(f.maxPrice!=null)s+="≤$"+f.maxPrice;
+    else s+="≥$"+f.minPrice;
+    p.push(s);
+  }
+  return p.join("、")||"目前條件";
+}
+
+/* ===== 音效引擎(Web Audio,即時合成) ===== */
+const Sound={
+  ctx:null, master:null, on:true,
+  ensure(){
+    if(!this.ctx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+      this.ctx=new AC(); this.master=this.ctx.createGain(); this.master.gain.value=0.85; this.master.connect(this.ctx.destination); }
+    if(this.ctx.state!=="running") this.ctx.resume();
+  },
+  tone(freq,start,dur,type,peak){
+    if(!this.ctx)return; const t0=this.ctx.currentTime+start;
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,t0);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(peak||0.12,t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g).connect(this.master); o.start(t0); o.stop(t0+dur+0.03);
+  },
+  glide(f1,f2,dur,type,peak){
+    if(!this.ctx)return; const t0=this.ctx.currentTime;
+    const o=this.ctx.createOscillator(),g=this.ctx.createGain();
+    o.type=type||"sawtooth"; o.frequency.setValueAtTime(f1,t0); o.frequency.exponentialRampToValueAtTime(f2,t0+dur);
+    g.gain.setValueAtTime(peak||0.1,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g).connect(this.master); o.start(t0); o.stop(t0+dur+0.03);
+  },
+  play(name){
+    if(!this.on)return; this.ensure(); if(!this.ctx)return;
+    switch(name){
+      case"tick":   this.tone(720+Math.random()*280,0,0.045,"square",0.045); break;
+      case"click":  this.tone(380,0,0.07,"triangle",0.12); break;
+      case"settle": [523.25,659.25,783.99].forEach((f,i)=>this.tone(f,i*0.07,0.20,"sine",0.15)); break;
+      case"reject": this.glide(460,170,0.22,"sawtooth",0.09); break;
+      case"confirm":[523.25,659.25,783.99,1046.5].forEach((f,i)=>this.tone(f,i*0.09,0.26,"triangle",0.14)); break;
+      case"egg":    [392,523,392,659,784].forEach((f,i)=>this.tone(f,i*0.1,0.18,"triangle",0.13)); break;
+    }
+  }
+};
+
+/* ===== 狀態 ===== */
+let state={level:null,remaining:[],current:null,rejected:[],history:[],redrawStreak:0,roundFiltered:[]};
+const $=id=>document.getElementById(id);
+const els={levels:$("levels"),need:$("needInput"),placeholder:$("placeholder"),warn:$("warn"),
+  result:$("result"),plate:$("plate"),fname:$("fname"),stars:$("stars"),recTxt:$("recTxt"),
+  price:$("price"),ftags:$("ftags"),remain:$("remain"),drawBtn:$("drawBtn"),postRow:$("postRow"),
+  redrawBtn:$("redrawBtn"),confirmBtn:$("confirmBtn"),rejList:$("rejList"),histList:$("histList"),
+  overlay:$("overlay"),eggBtn:$("eggBtn"),eggTitle:$("eggTitle"),eggDesc:$("eggDesc"),soundBtn:$("soundBtn")};
+
+/* 等級按鈕 */
+LEVELS.forEach(l=>{
+  const d=document.createElement("div");
+  d.className="lvl"; d.dataset.id=l.id;
+  d.innerHTML=`<span class="e">${l.e}</span><span class="n">${l.n}</span>`;
+  d.addEventListener("click",()=>{Sound.play("click");selectLevel(l.id);});
+  els.levels.appendChild(d);
+});
+/* chips */
+document.querySelectorAll(".chips").forEach(c=>c.addEventListener("click",e=>{
+  const chip=e.target.closest(".chip"); if(!chip)return;
+  Sound.play("click");
+  const add=chip.dataset.add, cur=els.need.value.trim();
+  els.need.value = cur ? (cur.replace(/[、,，\s]*$/,"")+"、"+add) : add;
+  resetRound();
+}));
+$("clearNeed").addEventListener("click",()=>{Sound.play("click");els.need.value="";resetRound();});
+els.need.addEventListener("input",resetRound);
+/* 音效切換 */
+els.soundBtn.addEventListener("click",()=>{
+  Sound.on=!Sound.on;
+  els.soundBtn.textContent=Sound.on?"🔊":"🔇";
+  els.soundBtn.classList.toggle("off",!Sound.on);
+  if(Sound.on)Sound.play("click");
+});
+
+/* 幸運值 */
+(function(){
+  const v=Math.floor(Math.random()*41)+60; $("luckyVal").textContent=v;
+  const arc=$("gaugeArc"),C=151;
+  setTimeout(()=>{arc.style.transition="stroke-dashoffset 1s ease";arc.style.strokeDashoffset=String(C-(C*v/100));},150);
+})();
+
+function selectLevel(id){
+  state.level=id;
+  [...els.levels.children].forEach(c=>c.classList.toggle("active",c.dataset.id===id));
+  resetRound();
+}
+function resetRound(){
+  state.remaining=[];state.current=null;state.rejected=[];state.redrawStreak=0;state.roundFiltered=[];
+  els.result.style.display="none";els.placeholder.style.display="block";els.warn.style.display="none";
+  els.postRow.style.display="none";els.drawBtn.style.display="block";els.drawBtn.disabled=false;
+  els.drawBtn.textContent="🎰 開始抽選";
+  els.placeholder.querySelector("p").innerHTML="選一個等級,設定今日需求,<br/>按下「開始抽選」讓終端機幫你決定。";
+  renderRejected();
+}
+function buildRound(){
+  const f=parseNeed(els.need.value);
+  const filtered=applyFilter(poolOf(state.level),f);
+  state.roundFiltered=filtered;
+  if(filtered.length===0){
+    showWarn("沒有符合「"+summarize(f)+"」的選項。<br/>請放寬條件(例如移除預算或某個排除項)。",true);return false;
+  }
+  if(filtered.length<5){
+    showWarn("符合條件的只有 <b>"+filtered.length+"</b> 項(建議 ≥5 項才好玩)。<br/>可放寬條件,或直接從這 "+filtered.length+" 項抽選。",false);
+  } else els.warn.style.display="none";
+  state.remaining=shuffle(filtered.slice());
+  return true;
+}
+function showWarn(html,block){
+  els.warn.innerHTML=html;els.warn.style.display="block";
+  els.placeholder.style.display="none";els.result.style.display="none";
+  els.postRow.style.display="none";els.drawBtn.style.display="block";els.drawBtn.disabled=!!block;
+}
+
+els.drawBtn.addEventListener("click",()=>{
+  if(!state.level){Sound.play("reject");flashNeedLevel();return;}
+  Sound.play("click");
+  if(state.remaining.length===0){ if(!buildRound())return; if(state.remaining.length===0)return; }
+  drawOne();
+});
+els.redrawBtn.addEventListener("click",()=>{
+  Sound.play("reject");
+  if(state.current && !state.rejected.some(r=>r.name===state.current.name)){
+    state.rejected.push(state.current);renderRejected();
+  }
+  state.redrawStreak++;
+  if(state.remaining.length===0){els.remain.textContent="本等級已抽完!可換等級或重置需求。";els.redrawBtn.disabled=true;return;}
+  if(state.redrawStreak===5){triggerEgg();return;}
+  drawOne();
+});
+els.confirmBtn.addEventListener("click",confirmPick);
+
+function drawOne(){
+  const next=item(state.remaining.shift()); state.current=next;
+  els.placeholder.style.display="none";els.warn.style.display="none";
+  els.result.style.display="flex";els.drawBtn.style.display="none";els.postRow.style.display="flex";
+  els.redrawBtn.disabled=false;els.confirmBtn.disabled=false;
+  const reel=state.roundFiltered.length?state.roundFiltered:poolOf(state.level);
+  els.plate.classList.add("spin");
+  let elapsed=0,delay=55; const total=1200;
+  (function tick(){
+    const r=item(reel[Math.floor(Math.random()*reel.length)]);
+    els.plate.textContent=r.emoji;els.fname.textContent=r.name;
+    els.stars.textContent="";els.recTxt.textContent="";els.price.textContent="";els.ftags.innerHTML="";
+    Sound.play("tick");
+    elapsed+=delay;delay*=1.18;
+    if(elapsed<total)setTimeout(tick,delay); else settle(next);
+  })();
+}
+function settle(it){
+  els.plate.classList.remove("spin");
+  els.plate.textContent=it.emoji;els.fname.textContent=it.name;
+  Sound.play("settle");
+  const rec=Math.floor(Math.random()*30)+70, full=Math.round(rec/20);
+  els.stars.textContent="★".repeat(full)+"☆".repeat(5-full);
+  els.recTxt.textContent="推薦指數 "+rec+"%";
+  els.price.textContent="約 NT$"+it.price;
+  els.ftags.innerHTML=it.tags.map(t=>`<span class="ftag">#${t}</span>`).join("");
+  els.remain.textContent="本輪剩餘候選:"+state.remaining.length+" 項";
+}
+function confirmPick(){
+  if(!state.current)return;
+  const it=state.current;
+  Sound.play("confirm");
+  state.history.unshift({name:it.name,emoji:it.emoji,t:nowTime()});renderHistory();celebrate();
+  els.remain.textContent="🎉 就吃「"+it.name+"」!祝用餐愉快。";
+  els.postRow.style.display="none";els.drawBtn.style.display="block";
+  els.drawBtn.textContent="🎰 再抽下一輪";els.drawBtn.disabled=false;
+  state.remaining=[];state.current=null;state.redrawStreak=0;
+}
+function renderRejected(){
+  els.rejList.innerHTML = state.rejected.length
+    ? state.rejected.map(r=>`<span class="pill rej">${r.emoji} ${r.name}</span>`).join("")
+    : '<span class="empty">還沒拒絕任何食物</span>';
+}
+function renderHistory(){
+  els.histList.innerHTML = state.history.length
+    ? state.history.slice(0,6).map(h=>`<li><span>${h.emoji} ${h.name}</span><span class="t">${h.t}</span></li>`).join("")
+    : '<li><span class="empty">尚無紀錄</span></li>';
+}
+const EGGS=[
+  {em:"😏",t:"你今天有夠難搞",d:"連抽 5 次還不滿意?終端機派出隱藏菜色,閉眼睛吃就對了。"},
+  {em:"🎩",t:"神祕主廚出動",d:"選擇困難末期偵測完成。這道是主廚私藏,別問了。"}
+];
+function triggerEgg(){
+  Sound.play("egg");
+  const e=EGGS[Math.floor(Math.random()*EGGS.length)];
+  els.eggTitle.textContent=e.t;els.eggDesc.textContent=e.d;els.overlay.style.display="flex";
+}
+els.eggBtn.addEventListener("click",()=>{
+  Sound.play("click");els.overlay.style.display="none";
+  if(state.remaining.length===0){els.remain.textContent="已抽完,換個等級吧!";return;}
+  const next=item(state.remaining.shift());state.current=next;settle(next);
+  els.plate.textContent="🎁";els.fname.textContent="神祕主廚餐 · "+next.name;
+  els.redrawBtn.disabled=false;els.confirmBtn.disabled=false;state.redrawStreak=0;
+});
+function celebrate(){
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const colors=["#5BA8FF","#8B7CF6","#36D6FF","#34D399","#FFB23E"];
+  for(let i=0;i<70;i++){
+    const c=document.createElement("div");c.className="confetti";
+    c.style.left=Math.random()*100+"vw";c.style.background=colors[i%colors.length];
+    c.style.transform="rotate("+Math.random()*360+"deg)";document.body.appendChild(c);
+    c.animate([{transform:"translateY(-20px) rotate(0)",opacity:1},
+      {transform:"translateY("+(window.innerHeight+40)+"px) rotate("+(Math.random()*720-360)+"deg)",opacity:.9}],
+      {duration:1400+Math.random()*1200,easing:"cubic-bezier(.3,.8,.5,1)"}).onfinish=()=>c.remove();
+  }
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function nowTime(){const d=new Date();return d.getHours().toString().padStart(2,"0")+":"+d.getMinutes().toString().padStart(2,"0");}
+function flashNeedLevel(){
+  els.levels.animate([{transform:"translateX(0)"},{transform:"translateX(-6px)"},{transform:"translateX(6px)"},{transform:"translateX(0)"}],{duration:300});
+  els.placeholder.querySelector("p").innerHTML="👆 先選一個等級再開始抽選喔!";
+}
+</script>
+</body>
+</html>
