@@ -276,6 +276,8 @@
   .egg p{font-size:12.5px;font-weight:300;color:var(--ink-soft);line-height:1.8;margin-bottom:22px;
     letter-spacing:.02em;}
   .egg button{width:100%;}
+  .egg p b{color:var(--accent-deep);font-weight:600;}
+  .egg .stack{display:flex;flex-direction:column;gap:10px;}
 
   .confetti{position:fixed;width:7px;height:11px;z-index:60;top:-20px;border-radius:2px;
     pointer-events:none;}
@@ -426,6 +428,18 @@
       <h3 id="eggTitle">你今天有夠難搞</h3>
       <p id="eggDesc">連換五次仍未滿意？終端機動用隱藏菜色，閉上眼睛，相信它。</p>
       <button class="btn btn-main" id="eggBtn">接受命運</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="mapOverlay">
+    <div class="egg">
+      <div class="em">📍</div>
+      <h3>找找附近的店？</h3>
+      <p id="mapDesc">要開 Google Maps 看看附近哪裡吃得到嗎？</p>
+      <div class="stack">
+        <button class="btn btn-main" id="mapGoBtn">帶我去 Google Maps</button>
+        <button class="btn btn-ghost" id="mapSkipBtn">先不用</button>
+      </div>
     </div>
   </div>
 
@@ -924,7 +938,39 @@ function confirmPick(){
   els.postRow.style.display="none";els.drawBtn.style.display="inline-flex";
   els.drawBtn.textContent="再抽下一輪";els.drawBtn.disabled=false;
   state.remaining=[];state.current=null;state.redrawStreak=0;
+  setTimeout(()=>showMapPrompt(it), reduceMotion?0:700);
 }
+
+/* ===== 確認後:詢問是否開 Google Maps 找附近店家(免費,不需 API key) ===== */
+const mapEls={overlay:$("mapOverlay"),desc:$("mapDesc"),go:$("mapGoBtn"),skip:$("mapSkipBtn")};
+let mapTarget=null;
+function showMapPrompt(it){
+  mapTarget=it;
+  mapEls.desc.innerHTML='要開 Google Maps 找找附近的「<b>'+it.name+'</b>」嗎？';
+  mapEls.go.disabled=false; mapEls.go.textContent="帶我去 Google Maps";
+  mapEls.overlay.style.display="flex";
+  requestAnimationFrame(()=>mapEls.overlay.classList.add("show"));
+}
+function closeMapPrompt(){
+  mapEls.overlay.classList.remove("show");
+  setTimeout(()=>mapEls.overlay.style.display="none",380);
+}
+function openMaps(){
+  if(!mapTarget)return;
+  const q=encodeURIComponent(mapTarget.name);
+  const fallback="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(mapTarget.name+" 餐廳");
+  const go=url=>{ window.open(url,"_blank","noopener"); closeMapPrompt(); };
+  if(navigator.geolocation){
+    mapEls.go.disabled=true; mapEls.go.textContent="定位中…";
+    navigator.geolocation.getCurrentPosition(
+      p=>go("https://www.google.com/maps/search/"+q+"/@"+p.coords.latitude+","+p.coords.longitude+",16z"),
+      ()=>go(fallback),                       /* 拒絕授權或失敗 → 用裝置定位的一般搜尋 */
+      {enableHighAccuracy:false,timeout:6000,maximumAge:300000}
+    );
+  } else go(fallback);
+}
+mapEls.go.addEventListener("click",()=>{Sound.play("click");openMaps();});
+mapEls.skip.addEventListener("click",()=>{Sound.play("click");closeMapPrompt();});
 function renderRejected(){
   els.rejList.innerHTML = state.rejected.length
     ? state.rejected.map(r=>`<span class="pill rej">${r.emoji} ${r.name}</span>`).join("")
