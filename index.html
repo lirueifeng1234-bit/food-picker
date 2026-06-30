@@ -608,8 +608,49 @@ const TAGWORDS={
   "中式":"中","中餐":"中","西式":"西","美式":"西","義式":"西","義大利":"西",
   "泰式":"泰","泰國":"泰","越南":"泰","泰越":"泰"
 };
-const NEG=["不要","不吃","不想吃","不想","別","沒有","拒絕","避免","不能吃","討厭","不愛","忌","無"];
-const POS=["想吃","想要","要","愛","喜歡","來點","來個","想來","來份","超想","好想","想喝"];
+/* 否定 / 肯定 標記(長詞優先,提升斷詞可靠度) */
+const NEG=["不想要","不想吃","不能吃","不喜歡","不要","不吃","不加","不放","不沾","討厭","拒絕","避免","會過敏","過敏","拿掉","去掉","別加","別放","別","沒有","忌口","忌","免","怕"];
+const POS=["想吃","想要","想喝","想來","來點","來個","來份","來碗","來盤","超想","好想","愛吃","喜歡","愛","多加","多放","加點","要"];
+const NEUTRAL_INCLUDE=new Set(["辣","素","甜","海鮮","日","韓","台","中","西","泰"]);
+const NEGCHAR="不沒別無未勿非免";
+const SEP_CHARS="、，,。.！!？?；;:：/\\ \t\n\r．・|";
+const SEP_WORDS=["但是","可是","不過","然後","再來","另外","還有","但"];
+
+function pushUniq(arr,v){ if(!arr.includes(v)) arr.push(v); }
+/* 取得關鍵字所在子句的起訖(遇分隔符或轉折詞即斷句) */
+function clauseStart(text,idx){
+  let pos=0;
+  for(let i=0;i<idx;i++){ if(SEP_CHARS.indexOf(text[i])>=0) pos=i+1; }
+  for(const w of SEP_WORDS){ const p=text.lastIndexOf(w,idx-1); if(p!==-1 && p+w.length<=idx) pos=Math.max(pos,p+w.length); }
+  return pos;
+}
+function clauseEnd(text,from){
+  let end=text.length;
+  for(let i=from;i<text.length;i++){ if(SEP_CHARS.indexOf(text[i])>=0){ end=i; break; } }
+  for(const w of SEP_WORDS){ const p=text.indexOf(w,from); if(p!==-1) end=Math.min(end,p); }
+  return end;
+}
+function nearestNeg(seg){ let b=-1; for(const m of NEG){ const p=seg.lastIndexOf(m); if(p>b)b=p; } return b; }
+function nearestPos(seg){
+  let b=-1;
+  for(const m of POS){
+    let p=seg.lastIndexOf(m);
+    while(p>0 && NEGCHAR.indexOf(seg[p-1])>=0) p=seg.lastIndexOf(m,p-1); /* 跳過「不想」中的「想」這類誤判 */
+    if(p>b)b=p;
+  }
+  return b;
+}
+/* 判斷某關鍵字在句中的極性: -1 排除 / 1 想要 / 0 中性 */
+function detectPolarity(text,idx,k){
+  const cs=clauseStart(text,idx), ce=clauseEnd(text,idx+k.length);
+  const pre=text.slice(cs,idx), post=text.slice(idx+k.length,ce);
+  if(pre && NEGCHAR.indexOf(pre.slice(-1))>=0) return -1;       /* 緊鄰否定字:不辣、沒牛 */
+  if(/(不要|不用|不加|不放|免了|不行|拿掉|去掉|不沾)/.test(post)) return -1; /* 後置否定:海鮮不要 */
+  const np=nearestNeg(pre), pp=nearestPos(pre);
+  if(np>pp) return -1;
+  if(pp>np) return 1;
+  return 0;
+}
 
 function parseBudget(t){
   let min=null,max=null;
@@ -629,25 +670,25 @@ function parseNeed(raw){
   const f={include:[],exclude:[],minPrice:null,maxPrice:null};
   if(!t) return f;
   const b=parseBudget(t); f.minPrice=b.min; f.maxPrice=b.max;
-  if(/吃素|素食|不要肉|不吃肉|沒有肉|不想吃肉|純素/.test(t))
-    MEAT_TAGS.forEach(m=>{ if(!f.exclude.includes(m)) f.exclude.push(m); });
+
+  /* 全句層級的素食 / 葷食意圖 */
+  if(/吃素|素食|蔬食|不要肉|不吃肉|沒有肉|不想吃肉|純素/.test(t))
+    MEAT_TAGS.forEach(m=>pushUniq(f.exclude,m));
   if(/想吃肉|想要肉|來點肉|要吃肉|想來點肉|無肉不歡/.test(t))
-    if(!f.exclude.includes("素")) f.exclude.push("素");
+    pushUniq(f.exclude,"素");
+
+  /* 逐關鍵字判斷極性,以子句為範圍,正確處理「想吃辣但不要海鮮」這類混合句 */
   for(const k of Object.keys(TAGWORDS)){
     let idx=t.indexOf(k);
     while(idx!==-1){
-      const tag=TAGWORDS[k];
-      const before=t.slice(Math.max(0,idx-3),idx);
-      const isNeg=NEG.some(w=>before.includes(w))||t.slice(Math.max(0,idx-1),idx)==="不";
-      const isPos=POS.some(w=>before.includes(w));
-      if(isNeg){ if(!f.exclude.includes(tag))f.exclude.push(tag); }
-      else if(isPos){ if(!f.include.includes(tag))f.include.push(tag); }
-      else if(["辣","素","甜","海鮮","日","韓","台","中","西","泰"].includes(tag)){
-        if(!f.include.includes(tag))f.include.push(tag);
-      }
+      const tag=TAGWORDS[k], pol=detectPolarity(t,idx,k);
+      if(pol<0) pushUniq(f.exclude,tag);
+      else if(pol>0) pushUniq(f.include,tag);
+      else if(NEUTRAL_INCLUDE.has(tag)) pushUniq(f.include,tag);
       idx=t.indexOf(k,idx+1);
     }
   }
+  /* 衝突時以排除為準(寧可少選,不要吃到不想吃的) */
   f.include=f.include.filter(x=>!f.exclude.includes(x));
   return f;
 }
