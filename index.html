@@ -6,7 +6,7 @@
 <title>美食抽選 · GLACIER</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Noto+Serif+TC:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     /* —— 基底:由畫面一角灑落的徑向光暈 —— */
@@ -31,6 +31,9 @@
     --ease:cubic-bezier(.4,0,.2,1);
     --ease-out:cubic-bezier(.16,1,.3,1);
     --r:22px;
+    /* —— 三段式字體:讀數/mono、標題/serif、正文/sans —— */
+    --font-display:"Fraunces","Noto Serif TC",serif;
+    --font-mono:"IBM Plex Mono","Noto Sans TC",ui-monospace,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -45,23 +48,24 @@
     min-height:100%; overflow-x:hidden; position:relative;
     padding:46px 20px 56px; letter-spacing:.01em;
   }
-  /* 極淡的懸浮光點,呼吸式 */
-  .aura{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;}
-  .aura.a{width:340px;height:340px;background:rgba(159,200,232,.30);top:-110px;right:-70px;
-    animation:breathe 14s var(--ease) infinite;}
-  .aura.b{width:300px;height:300px;background:rgba(214,232,245,.45);bottom:-90px;left:-80px;
-    animation:breathe 18s var(--ease) infinite reverse;}
-  @keyframes breathe{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.12);opacity:1;}}
+  /* 冰晶刻面:以線稿多面體取代通用模糊光斑,呼應「抽籤問神」的凝視感 */
+  .facet{position:fixed;pointer-events:none;z-index:0;overflow:visible;}
+  .facet.a{width:260px;height:260px;top:-52px;right:-58px;animation:facet-turn 90s linear infinite;}
+  .facet.b{width:210px;height:210px;bottom:-46px;left:-52px;opacity:.8;animation:facet-turn 70s linear infinite reverse;}
+  .facet polygon,.facet line{animation:facet-glint 7s var(--ease) infinite;}
+  .facet.b polygon,.facet.b line{animation-delay:-3.2s;}
+  @keyframes facet-turn{to{transform:rotate(360deg);}}
+  @keyframes facet-glint{0%,100%{stroke-opacity:.5;}50%{stroke-opacity:1;}}
 
   .wrap{position:relative;z-index:1;max-width:540px;margin:0 auto;}
 
   /* —————————— 標題 —————————— */
   .head{text-align:center;margin-bottom:38px;}
-  .eyebrow{font-family:"Inter";font-size:11px;font-weight:500;letter-spacing:.42em;
-    color:var(--accent-deep);text-transform:uppercase;margin-bottom:14px;
-    padding-left:.42em;opacity:.9;}
-  .head h1{font-family:"Inter","Noto Sans TC";font-weight:600;font-size:33px;
-    letter-spacing:.03em;color:var(--ink);line-height:1.18;}
+  .eyebrow{font-family:var(--font-mono);font-size:10.5px;font-weight:500;letter-spacing:.32em;
+    color:var(--accent-deep);text-transform:uppercase;margin-bottom:16px;
+    padding-left:.32em;opacity:.9;}
+  .head h1{font-family:var(--font-display);font-weight:500;font-size:37px;
+    letter-spacing:.005em;color:var(--ink);line-height:1.16;}
   .head .sub{font-size:13px;font-weight:300;color:var(--ink-soft);margin-top:11px;
     letter-spacing:.04em;}
   .lucky{display:inline-flex;align-items:center;gap:9px;margin-top:20px;
@@ -71,8 +75,8 @@
   .lucky .ring{width:30px;height:30px;position:relative;flex:0 0 auto;}
   .lucky .ring svg{transform:rotate(-90deg);}
   .lucky .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-family:"Inter";font-size:11px;font-weight:600;color:var(--accent-deep);}
-  .lucky .lab{font-size:11px;font-weight:300;color:var(--ink-soft);letter-spacing:.12em;}
+    font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--accent-deep);}
+  .lucky .lab{font-family:var(--font-mono);font-size:10.5px;font-weight:400;color:var(--ink-soft);letter-spacing:.08em;}
   .lucky .lab strong{font-family:"Inter";font-weight:600;color:var(--ink);letter-spacing:.02em;}
 
   /* —————————— 通用玻璃卡 —————————— */
@@ -80,7 +84,7 @@
     -webkit-backdrop-filter:blur(16px) saturate(118%);
     border:1px solid var(--glass-line);border-radius:var(--r);box-shadow:var(--float);}
   .pad{padding:20px;}
-  .label{font-family:"Inter";font-size:10px;font-weight:600;letter-spacing:.26em;
+  .label{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.18em;
     color:var(--ink-faint);text-transform:uppercase;margin-bottom:14px;display:flex;
     align-items:center;gap:9px;}
   .label::before{content:"";width:16px;height:1.5px;border-radius:2px;
@@ -100,7 +104,7 @@
                0 6px 20px rgba(107,168,214,.16);}
 
   .chipgroup{margin-top:18px;}
-  .chipgroup .glabel{font-family:"Inter";font-size:9.5px;font-weight:600;letter-spacing:.2em;
+  .chipgroup .glabel{font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:.14em;
     color:var(--ink-faint);text-transform:uppercase;margin-bottom:10px;}
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{font-size:12.5px;font-weight:400;padding:7px 13px;border-radius:999px;cursor:pointer;
@@ -186,20 +190,20 @@
   .reveal-el{opacity:0;transform:translateY(12px);
     transition:opacity .55s var(--ease-out),transform .55s var(--ease-out);}
   .reveal-el.show{opacity:1;transform:translateY(0);}
-  .fname{font-family:"Inter","Noto Sans TC";font-size:25px;font-weight:600;
-    letter-spacing:.02em;color:var(--ink);}
+  .fname{font-family:var(--font-display);font-size:29px;font-weight:500;
+    letter-spacing:.005em;color:var(--ink);}
   .fmeta{display:flex;align-items:center;gap:13px;margin-top:13px;flex-wrap:wrap;
     justify-content:center;}
   .stars{color:#C9A86B;font-size:13px;letter-spacing:3px;}
-  .rec{font-size:11.5px;font-weight:300;color:var(--ink-faint);letter-spacing:.04em;}
-  .price{font-family:"Inter";font-size:12.5px;font-weight:500;color:var(--accent-deep);
-    background:rgba(107,168,214,.1);padding:4px 12px;border-radius:999px;letter-spacing:.02em;}
+  .rec{font-family:var(--font-mono);font-size:11px;font-weight:400;color:var(--ink-faint);letter-spacing:.02em;}
+  .price{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--accent-deep);
+    background:rgba(107,168,214,.1);padding:4px 12px;border-radius:999px;letter-spacing:.01em;}
   .ftags{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:15px;}
   .ftag{font-size:11px;font-weight:300;color:var(--ink-soft);
     background:rgba(255,255,255,.55);border:1px solid rgba(157,192,224,.35);
     padding:4px 11px;border-radius:999px;letter-spacing:.03em;}
-  .remain{font-size:11px;font-weight:300;color:var(--ink-faint);margin-top:18px;
-    letter-spacing:.1em;}
+  .remain{font-family:var(--font-mono);font-size:10.5px;font-weight:400;color:var(--ink-faint);margin-top:18px;
+    letter-spacing:.04em;}
 
   .warn{display:none;width:100%;background:rgba(252,248,240,.78);
     border:1px solid rgba(216,196,158,.55);color:#8A744E;backdrop-filter:blur(10px);
@@ -248,7 +252,7 @@
   .histlist li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
     border-bottom:1px solid rgba(157,192,224,.18);}
   .histlist li:last-child{border-bottom:none;}
-  .histlist .t{font-family:"Inter";color:var(--ink-faint);font-size:11px;letter-spacing:.04em;}
+  .histlist .t{font-family:var(--font-mono);color:var(--ink-faint);font-size:10.5px;letter-spacing:.02em;}
 
   .sound-btn{position:fixed;top:22px;right:22px;z-index:5;width:42px;height:42px;border-radius:50%;
     border:1px solid var(--glass-line);background:var(--glass-strong);backdrop-filter:blur(16px);
@@ -271,8 +275,8 @@
     transform:translateY(16px) scale(.97);transition:transform .5s var(--ease-out);}
   .overlay.show .egg{transform:translateY(0) scale(1);}
   .egg .em{font-size:46px;filter:saturate(.85);}
-  .egg h3{font-family:"Inter","Noto Sans TC";font-size:18px;font-weight:600;
-    letter-spacing:.02em;margin:14px 0 8px;color:var(--ink);}
+  .egg h3{font-family:var(--font-display);font-size:20px;font-weight:500;
+    letter-spacing:.005em;margin:14px 0 8px;color:var(--ink);}
   .egg p{font-size:12.5px;font-weight:300;color:var(--ink-soft);line-height:1.8;margin-bottom:22px;
     letter-spacing:.02em;}
   .egg button{width:100%;}
@@ -284,7 +288,10 @@
 
   .foot{text-align:center;font-size:10px;font-weight:300;color:var(--ink-ghost);
     margin-top:30px;line-height:1.9;letter-spacing:.05em;}
-  .foot span{font-family:"Inter";}
+  .foot span{font-family:var(--font-mono);letter-spacing:.1em;}
+
+  :focus-visible{outline:2px solid var(--accent-deep);outline-offset:3px;border-radius:8px;}
+  .lvl:focus-visible,.chip:focus-visible,.sound-btn:focus-visible{outline-offset:2px;}
 
   @media(prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important;}}
   @media(max-width:380px){
@@ -296,7 +303,21 @@
 </style>
 </head>
 <body>
-  <div class="aura a"></div><div class="aura b"></div>
+  <svg class="facet a" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="var(--accent-soft)" stroke-width="1">
+      <polygon points="110,8 200,70 170,180 50,180 20,70"/>
+      <line x1="110" y1="8" x2="110" y2="120"/><line x1="200" y1="70" x2="110" y2="120"/>
+      <line x1="170" y1="180" x2="110" y2="120"/><line x1="50" y1="180" x2="110" y2="120"/>
+      <line x1="20" y1="70" x2="110" y2="120"/>
+    </g>
+  </svg>
+  <svg class="facet b" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="var(--glacier)" stroke-width="1">
+      <polygon points="110,14 190,62 190,158 110,206 30,158 30,62"/>
+      <line x1="110" y1="14" x2="110" y2="206"/><line x1="30" y1="62" x2="190" y2="158"/>
+      <line x1="30" y1="158" x2="190" y2="62"/>
+    </g>
+  </svg>
 
   <button class="sound-btn" id="soundBtn" title="音效">🔊</button>
 
@@ -786,19 +807,35 @@ const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches
 LEVELS.forEach(l=>{
   const d=document.createElement("div");
   d.className="lvl"; d.dataset.id=l.id;
+  d.tabIndex=0; d.setAttribute("role","button"); d.setAttribute("aria-label",l.n);
   d.innerHTML=`<span class="e">${l.e}</span><span class="n">${l.n}</span>`;
   d.addEventListener("click",()=>{Sound.play("click");selectLevel(l.id);});
+  d.addEventListener("keydown",e=>{
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();d.click();}
+  });
   els.levels.appendChild(d);
 });
 /* chips */
-document.querySelectorAll(".chips").forEach(c=>c.addEventListener("click",e=>{
-  const chip=e.target.closest(".chip"); if(!chip)return;
-  Sound.play("click");
-  const add=chip.dataset.add, cur=els.need.value.trim();
-  els.need.value = cur ? (cur.replace(/[、,，\s]*$/,"")+"、"+add) : add;
-  resetRound();
-}));
+document.querySelectorAll(".chip").forEach(c=>{c.tabIndex=0;c.setAttribute("role","button");});
+document.querySelectorAll(".chips").forEach(c=>{
+  c.addEventListener("click",e=>{
+    const chip=e.target.closest(".chip"); if(!chip)return;
+    Sound.play("click");
+    const add=chip.dataset.add, cur=els.need.value.trim();
+    els.need.value = cur ? (cur.replace(/[、,，\s]*$/,"")+"、"+add) : add;
+    resetRound();
+  });
+  c.addEventListener("keydown",e=>{
+    if(e.key!=="Enter"&&e.key!==" ")return;
+    const chip=e.target.closest(".chip"); if(!chip)return;
+    e.preventDefault(); chip.click();
+  });
+});
+$("clearNeed").tabIndex=0; $("clearNeed").setAttribute("role","button");
 $("clearNeed").addEventListener("click",()=>{Sound.play("click");els.need.value="";resetRound();});
+$("clearNeed").addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key===" "){e.preventDefault();e.target.click();}
+});
 els.need.addEventListener("input",resetRound);
 els.soundBtn.addEventListener("click",()=>{
   Sound.on=!Sound.on;
